@@ -1,0 +1,29 @@
+import os ;
+local HOME = [ os.environ HOME ] ;
+
+use-project /libea : ../ealib/libea ;
+
+exe all_ones :
+    src/all_ones.cpp
+    /libea//libea
+    /libea//libea_runner
+    : <include>./include <link>static
+    ;
+
+exe markov_network :
+    src/markov_network.cpp
+    /libea//libea
+    /libea//libea_runner
+    /libmkv//libmkv
+    : <include>./include <link>static
+    ;
+
+exe meta_population :
+    src/meta_population.cpp
+    /libea//libea
+    /libea//libea_runner
+    /libmkv//libmkv
+    : <include>./include <link>static
+    ;
+
+install dist : all_ones markov_network meta_population : <location>$(HOME)/bin ;
