@@ -1,6 +1,6 @@
 This is Evolution of Swarming project.
 
-Copyright 2013 Randal S. Olson, Arend Hintze.
+Copyright 2013 Randal S. Olson.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
