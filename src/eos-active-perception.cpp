@@ -26,7 +26,7 @@
 #include <ea/markov_network.h>
 using namespace ea;
 
-//LIBEA_MD_DECL(PREDATOR_VIEW_ANGLE, "ea.fitness_function.predator_view_angle", double);
+LIBEA_MD_DECL(OUT_FILE_NAME, "ea.fitness_function.out_file_name", std::string);
 
 /*! Fitness function for pathfinder.
  */
@@ -346,7 +346,7 @@ generational_models::death_birth_process< >
 template <typename EA>
 struct pathfinder_stats : record_statistics_event<EA>
 {
-    pathfinder_stats(EA& ea) : record_statistics_event<EA>(ea), _df("fitness.dat")
+    pathfinder_stats(EA& ea) : record_statistics_event<EA>(ea), _df(get<OUT_FILE_NAME>(ea))
     {
         _df.add_field("update")
         .add_field("mean_generation")
@@ -405,7 +405,7 @@ public:
         add_option<GATE_WV_STEPS>(this);
         
         // fitness function options
-        //add_option<PREDATOR_VIEW_ANGLE>(this);
+        add_option<OUT_FILE_NAME>(this);
         
         // ea options
         add_option<REPRESENTATION_SIZE>(this);
