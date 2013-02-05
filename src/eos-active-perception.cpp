@@ -26,15 +26,37 @@
 #include <ea/markov_network.h>
 using namespace ea;
 
+//LIBEA_MD_DECL(PREDATOR_VIEW_ANGLE, "ea.fitness_function.predator_view_angle", double);
 
 /*! Fitness function for pathfinder.
  */
-struct example_fitness : fitness_function<unary_fitness<double>, constantS, absoluteS, stochasticS> {
+struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, absoluteS, stochasticS>
+{
+    // simulation-specific constants
+    #define     cPI                             3.14159265
+    #define     pathfinderVisionRange           50.0 * 50.0
+    #define     pathfinderSize                  5.0
+    #define     totalStepsInSimulation          2000
+    #define     gridX                           400.0
+    #define     gridY                           400.0
+    #define     collisionDist                   5.0 * 5.0
+    #define     boundaryDist                    400.0
+    #define     numFood                         50
+    
+    // precalculated lookup tables for the game
+    double cosLookup[360];
+    double sinLookup[360];
     
     /*! Initialize this fitness function -- load data, etc. */
     template <typename RNG, typename EA>
     void initialize(RNG& rng, EA& ea)
     {
+        // fill lookup tables
+        for (int i = 0; i < 360; ++i)
+        {
+            cosLookup[i] = cos((double)i * (cPI / 180.0));
+            sinLookup[i] = sin((double)i * (cPI / 180.0));
+        }
     }
     
 	template <typename Individual, typename RNG, typename EA>
@@ -47,19 +69,250 @@ struct example_fitness : fitness_function<unary_fitness<double>, constantS, abso
         // build a markov network from the individual's genome:
         mkv::build_markov_network(net, ind.repr().begin(), ind.repr().end(), ea);
         
-        // allocate space for the inputs & outputs:
-        std::vector<int> inputs(net.ninput_states(), 0);
+        // initial simulation space setup
+        double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
+        double foodX[numFood], foodY[numFood], foodSize[numFood];
+        bool foodEaten[numFood];
         
-        // now, set the values of the bits in the input vector:
+        pathfinderX = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridX) - gridX;
+        pathfinderY = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridY) - gridY;
+        pathfinderAngle = (int)(rng.uniform_real(0, 1) * 360.0);
         
-        // update the network n times:
-        update(net, get<MKV_UPDATE_N>(ea), inputs.begin());
+        for (int i = 0; i < numFood; ++i)
+        {
+            bool goodPos = true;
+            
+            do
+            {
+                goodPos = true;
+                foodX[i] = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridX) - gridX;
+                foodY[i] = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridY) - gridY;
+                
+                for (int j = 0; j < i; ++j)
+                {
+                    if (calcDistanceSquared(foodX[i], foodY[i], foodX[j], foodY[j]) <= pathfinderVisionRange)
+                    {
+                        goodPos = false;
+                        break;
+                    }
+                }
+            } while (!goodPos);
+            
+            if (rng.uniform_real(0, 1) < 0.75)
+            {
+                foodSize[i] = 5.0;
+            }
+            else
+            {
+                foodSize[i] = 20.0;
+            }
+            
+            foodEaten[i] = false;
+        }
         
-        // calculate fitness based on the outputs...
-        std::cout << "test" << std::endl;
+        /*       BEGINNING OF SIMULATION LOOP       */
+        
+        for(int step = 0; step < totalStepsInSimulation; ++step)
+        {
+            
+            /*       CREATE THE REPORT STRING FOR THE VIDEO       */
+            /*if (report)
+            {
+                // report X, Y, angle of pathfinding agent
+                char text1[1000];
+                sprintf(text1,"%f,%f,%f,%f,%d,%d,%d=", pathfinderX, pathfinderY, pathfinderAngle, pathfinderSize, 255, 255, 255);
+                reportString.append(text1);
+                
+                // report X, Y of food
+                for (int i = 0; i < numFood; ++i)
+                {
+                    if (!foodEaten[i])
+                    {
+                        char text2[1000];
+                        sprintf(text2,"%f,%f,%f,%f,%d,%d,%d=", foodX[i], foodY[i], 0.0, foodSize[i], 0, 255, 0);
+                        reportString.append(text2);
+                    }
+                }
+                
+                reportString.append("N");
+                
+            }*/
+            /*       END OF REPORT STRING CREATION       */
+            
+            
+            /*       SAVE DATA FOR THE LOD FILE       */
+            /*if (data_file != NULL)
+            {
+                
+            }*/
+            /*       END OF DATA GATHERING       */
+            
+            
+            /*       UPDATE PATHFINDER       */
+            
+            // update the pathfinder sensors
+            std::vector<int> inputs(net.ninput_states(), 0);
+            
+            for (int i = 0; i < numFood; ++i)
+            {
+                if (!foodEaten[i])
+                {
+                    double distToFood = calcDistanceSquared(pathfinderX, pathfinderY, foodX[i], foodY[i]) - pow(pathfinderSize, 2.0) / 2.0 - pow(foodSize[i], 2.0) / 2.0;
+                    
+                    if (distToFood <= pathfinderVisionRange)
+                    {
+                        double foodRadius = foodSize[i] / 2.0;
+                        
+                        int angleTL = (int)calcAngle(pathfinderX, pathfinderY, pathfinderAngle, foodX[i] - foodRadius, foodY[i] + foodRadius);
+                        int angleTR = (int)calcAngle(pathfinderX, pathfinderY, pathfinderAngle, foodX[i] + foodRadius, foodY[i] + foodRadius);
+                        int angleBL = (int)calcAngle(pathfinderX, pathfinderY, pathfinderAngle, foodX[i] - foodRadius, foodY[i] - foodRadius);
+                        int angleBR = (int)calcAngle(pathfinderX, pathfinderY, pathfinderAngle, foodX[i] + foodRadius, foodY[i] - foodRadius);
+                        
+                        int activateFromAngle = fmin(angleTL, fmin(angleTR, fmin(angleBL, angleBR)));
+                        int activateToAngle = fmax(angleTL, fmax(angleTR, fmax(angleBL, angleBR)));
+                        
+                        // keep angles within -90 and 90
+                        activateFromAngle = fmax(-90, activateFromAngle);
+                        activateToAngle = fmin(90, activateToAngle);
+                        
+                        for (int j = activateFromAngle; j <= activateToAngle; ++j)
+                        {
+                            inputs[j + 90] = 1;
+                        }
+                    }
+                }
+            }
+            
+            // activate the pathfinder's Markov network
+            update(net, get<MKV_UPDATE_N>(ea), inputs.begin());
+            
+            int action = algorithm::range2int(net.begin_output(), net.end_output());
+            
+            switch(action)
+            {
+                // move straight ahead
+                case 0:
+                    pathfinderX += cosLookup[(int)pathfinderAngle] * 2.0;
+                    pathfinderY += sinLookup[(int)pathfinderAngle] * 2.0;
+                    break;
+                    
+                // turn right
+                case 1:
+                    pathfinderAngle += 6.0;
+                    
+                    while(pathfinderAngle >= 360.0)
+                    {
+                        pathfinderAngle -= 360.0;
+                    }
+                    
+                    pathfinderX += cosLookup[(int)pathfinderAngle] * 2.0;
+                    pathfinderY += sinLookup[(int)pathfinderAngle] * 2.0;
+                    
+                    break;
+                    
+                // turn left
+                case 2:
+                    pathfinderAngle -= 6.0;
+                    
+                    while(pathfinderAngle < 0.0)
+                    {
+                        pathfinderAngle += 360.0;
+                    }
+                    
+                    pathfinderX += cosLookup[(int)pathfinderAngle] * 2.0;
+                    pathfinderY += sinLookup[(int)pathfinderAngle] * 2.0;
+                    
+                    break;
+                    
+                //
+                case 3:
+                    break;
+                    
+                default:
+                    break;
+            }
+            
+            // keep position within simulation boundary
+            applyBoundary(pathfinderX);
+            applyBoundary(pathfinderY);
+            
+            
+            // determine if pathfinder collided with food
+            for (int i = 0; i < numFood; ++i)
+            {
+                if (!foodEaten[i])
+                {
+                    double distToFood = calcDistanceSquared(pathfinderX, pathfinderY, foodX[i], foodY[i]) - pow(pathfinderSize, 2.0) / 2.0 - pow(foodSize[i], 2.0) / 2.0;
+                    
+                    if (distToFood <= 0.0)
+                    {
+                        foodEaten[i] = true;
+                        
+                        if (foodSize[i] == 5.0)
+                        {
+                            pathfinderFitness += 1;
+                        }
+                        else
+                        {
+                            pathfinderFitness += 1;
+                        }
+                    }
+                }
+            }
+            
+            /*       END OF PATHFINDER UPDATE       */
+            
+        }
+        /*       END OF SIMULATION LOOP       */
         
         // and return some measure of fitness:
-        return 1.0;
+        return pathfinderFitness;
+    }
+    
+    // calculates the distance^2 between two points
+    double calcDistanceSquared(double fromX, double fromY, double toX, double toY)
+    {
+        double diffX = fromX - toX;
+        double diffY = fromY - toY;
+        
+        return ( diffX * diffX ) + ( diffY * diffY );
+    }
+    
+    // calculates the angle between two agents
+    double calcAngle(double fromX, double fromY, double fromAngle, double toX, double toY)
+    {
+        double Ux = 0.0, Uy = 0.0, Vx = 0.0, Vy = 0.0;
+        
+        Ux = (toX - fromX);
+        Uy = (toY - fromY);
+        
+        Vx = cosLookup[(int)fromAngle];
+        Vy = sinLookup[(int)fromAngle];
+        
+        int firstTerm = (int)((Ux * Vy) - (Uy * Vx));
+        int secondTerm = (int)((Ux * Vx) + (Uy * Vy));
+        
+        return atan2(firstTerm, secondTerm) * 180.0 / cPI;
+    }
+    
+    // maintains a position within a preset boundary
+    void applyBoundary(double& positionVal)
+    {
+        double val = positionVal;
+        
+        if (fabs(val) > boundaryDist)
+        {
+            if (val < 0)
+            {
+                val = -1.0 * boundaryDist;
+            }
+            else
+            {
+                val = boundaryDist;
+            }
+        }
+        
+        positionVal = val;
     }
 };
 
@@ -82,7 +335,7 @@ struct configuration : public abstract_configuration<EA>
 typedef evolutionary_algorithm<
 circular_genome<int>,
 mkv_smart_mutation,
-example_fitness,
+pathfinder_fitness,
 configuration,
 recombination::asexual,
 generational_models::death_birth_process< >
@@ -112,7 +365,9 @@ public:
         add_option<GATE_HISTORY_LIMIT>(this);
         add_option<GATE_HISTORY_FLOOR>(this);
         add_option<GATE_WV_STEPS>(this);
-        add_option<PREDATOR_VIEW_ANGLE>(this);
+        
+        // fitness function options
+        //add_option<PREDATOR_VIEW_ANGLE>(this);
         
         // ea options
         add_option<REPRESENTATION_SIZE>(this);

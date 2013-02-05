@@ -60,7 +60,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-c etc/eos-active-perception.cfg"
+            argument = "-c etc/eos-active-perception.cfg --ea.rng.seed=5"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
