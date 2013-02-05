@@ -96,6 +96,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
                         break;
                     }
                 }
+                
             } while (!goodPos);
             
             if (rng.uniform_real(0, 1) < 0.75)
@@ -254,7 +255,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
                         }
                         else
                         {
-                            pathfinderFitness += 1;
+                            pathfinderFitness -= 1;
                         }
                     }
                 }
@@ -266,7 +267,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         /*       END OF SIMULATION LOOP       */
         
         // and return some measure of fitness:
-        return pathfinderFitness;
+        return fmax(0.00000001, pathfinderFitness);
     }
     
     // calculates the distance^2 between two points
@@ -341,6 +342,43 @@ recombination::asexual,
 generational_models::death_birth_process< >
 > ea_type;
 
+//! Stats recording event.
+template <typename EA>
+struct pathfinder_stats : record_statistics_event<EA>
+{
+    pathfinder_stats(EA& ea) : record_statistics_event<EA>(ea), _df("fitness.dat")
+    {
+        _df.add_field("update")
+        .add_field("mean_generation")
+        .add_field("mean_fitness")
+        .add_field("max_fitness");
+    }
+    
+    virtual ~pathfinder_stats()
+    {
+    }
+    
+    virtual void operator()(EA& ea)
+    {
+        using namespace boost::accumulators;
+        accumulator_set<double, stats<tag::mean> > gen;
+        accumulator_set<double, stats<tag::mean, tag::max> > fit;
+        
+        for(typename EA::population_type::iterator i=ea.population().begin(); i!=ea.population().end(); ++i)
+        {
+            gen((*i)->generation());
+            fit(static_cast<double>(ea::fitness(**i)));
+        }
+        
+        _df.write(ea.current_update())
+        .write(mean(gen))
+        .write(mean(fit))
+        .write(max(fit))
+        .endl();
+    }
+    
+    datafile _df;
+};
 
 /*! Define the EA's command-line interface.
  */
@@ -386,7 +424,7 @@ public:
     
     virtual void gather_events(EA& ea)
     {
-        add_event<datafiles::fitness>(this, ea);
+        add_event<pathfinder_stats>(this, ea);
     };
 };
 LIBEA_CMDLINE_INSTANCE(ea_type, cli);
