@@ -71,10 +71,13 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     double cosLookup[360];
     double sinLookup[360];
     
+    bool report;
+    
     /*! Initialize this fitness function -- load data, etc. */
     template <typename RNG, typename EA>
     void initialize(RNG& rng, EA& ea)
     {
+        report = false;
         if (get<VIDEO_PERIOD>(ea) > 0)
         {
             setupBroadcast();
@@ -88,6 +91,20 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         }
     }
     
+    template <typename Individual, typename RNG, typename EA>
+	void record(Individual& ind, RNG& rng, EA& ea)
+    {
+        report = true;
+        operator()(ind,rng,ea);
+        report = false;
+    }
+    
+    ~pathfinder_fitness()
+    {
+        // end signal to processing to close video
+        ;
+    }
+    
 	template <typename Individual, typename RNG, typename EA>
 	double operator()(Individual& ind, RNG& rng, EA& ea)
     {
@@ -99,7 +116,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         mkv::build_markov_network(net, ind.repr().begin(), ind.repr().end(), ea);
         
         // initial simulation space setup
-        bool report = get<RECORD_VIDEO>(ea);
+//        bool report = get<RECORD_VIDEO>(ea);
         std::string reportString = "";
         double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
         double foodX[numFood], foodY[numFood], foodSize[numFood];
@@ -461,26 +478,18 @@ struct pathfinder_stats : record_statistics_event<EA>
 
 //! Record video event.
 template <typename EA>
-struct record_video_event : event
+struct record_video_event : periodic_event<VIDEO_PERIOD, EA>
 {
-    record_video_event(EA& ea)
+    
+    record_video_event(EA& ea) : periodic_event<VIDEO_PERIOD,EA>(ea)
     {
-        conn = ea.events().record_statistics.connect(boost::bind(&record_video_event::record, this, _1));
     }
-    ~record_video_event() { }
-    void record(EA& ea)
-    {
-        if (get<VIDEO_PERIOD>(ea) > 0)
-        {
-            if ((ea.current_update() == 0) || ((ea.current_update() % get<VIDEO_PERIOD>(ea)) == 0))
-            {
-                operator()(ea);
-            }
-        }
-    }
+
     void operator()(EA& ea)
     {
-        put<RECORD_VIDEO>(true, ea);
+        typename EA::individual_type& ind = analysis::find_dominant(ea);
+        typename EA::rng_type rng(get<FF_RNG_SEED>(ind));
+        ea.fitness_function().record(ind,rng,ea);
     }
 };
 
