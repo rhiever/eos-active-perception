@@ -24,6 +24,7 @@
 		429B1C7D162DBA5300578A1C /* libea.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 429B1C7B162DBA5300578A1C /* libea.a */; };
 		429B1C7E162DBA5300578A1C /* libmkv.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 429B1C7C162DBA5300578A1C /* libmkv.a */; };
 		429B1CBC162ED89C00578A1C /* eos-active-perception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 429B1CA8162ED84E00578A1C /* eos-active-perception.cpp */; };
+		BAFA2CF416C1D69600EFB415 /* helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BAFA2CF216C1D69600EFB415 /* helper.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,8 @@
 		429B1CA8162ED84E00578A1C /* eos-active-perception.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "eos-active-perception.cpp"; sourceTree = "<group>"; };
 		429B1CD1162EE63900578A1C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		BAD0414716C049640078EF5E /* eos-active-perception.cfg */ = {isa = PBXFileReference; lastKnownFileType = text; path = "eos-active-perception.cfg"; sourceTree = "<group>"; };
+		BAFA2CF216C1D69600EFB415 /* helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = helper.cpp; sourceTree = "<group>"; };
+		BAFA2CF316C1D69600EFB415 /* helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = helper.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +107,8 @@
 		429B1C5F162DB94800578A1C /* src */ = {
 			isa = PBXGroup;
 			children = (
+				BAFA2CF216C1D69600EFB415 /* helper.cpp */,
+				BAFA2CF316C1D69600EFB415 /* helper.h */,
 				429B1CA8162ED84E00578A1C /* eos-active-perception.cpp */,
 			);
 			path = src;
@@ -171,6 +176,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				429B1CBC162ED89C00578A1C /* eos-active-perception.cpp in Sources */,
+				BAFA2CF416C1D69600EFB415 /* helper.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

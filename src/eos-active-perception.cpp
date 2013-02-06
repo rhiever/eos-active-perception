@@ -24,6 +24,14 @@
 #include <ea/cmdline_interface.h>
 #include <ea/datafiles/fitness.h>
 #include <ea/markov_network.h>
+
+#include <sys/socket.h>       /*  socket definitions        */
+#include <sys/types.h>        /*  socket types              */
+#include <arpa/inet.h>        /*  inet (3) funtions         */
+#include <unistd.h>           /*  misc. UNIX functions      */
+
+#include "helper.h"           /*  our own helper functions  */
+
 using namespace ea;
 
 LIBEA_MD_DECL(OUT_FILE_NAME, "ea.fitness_function.out_file_name", std::string);
@@ -32,6 +40,20 @@ LIBEA_MD_DECL(OUT_FILE_NAME, "ea.fitness_function.out_file_name", std::string);
  */
 struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, absoluteS, stochasticS>
 {
+        
+    #define ECHO_PORT          (2002)
+    #define MAX_LINE           (100000)
+    #define BUFLEN              512
+    #define NPACK               10
+    #define PORT                9930
+    
+    int       list_s;                /*  listening socket          */
+    int       conn_s;                /*  connection socket         */
+    short int port;                  /*  port number               */
+    struct    sockaddr_in servaddr;  /*  socket address structure  */
+    char      buffer[MAX_LINE];      /*  character buffer          */
+    char     *endptr;                /*  for strtol()              */
+    
     // simulation-specific constants
     #define     cPI                             3.14159265
     #define     pathfinderVisionRange           50.0 * 50.0
@@ -51,6 +73,8 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     template <typename RNG, typename EA>
     void initialize(RNG& rng, EA& ea)
     {
+        setupBroadcast();
+        
         // fill lookup tables
         for (int i = 0; i < 360; ++i)
         {
@@ -70,6 +94,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         mkv::build_markov_network(net, ind.repr().begin(), ind.repr().end(), ea);
         
         // initial simulation space setup
+        std::string reportString = "";
         double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
         double foodX[numFood], foodY[numFood], foodSize[numFood];
         bool foodEaten[numFood];
@@ -117,35 +142,35 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         {
             
             /*       CREATE THE REPORT STRING FOR THE VIDEO       */
-            /*if (report)
+            
+            // report X, Y, angle of pathfinding agent
+            char text1[1000];
+            sprintf(text1, "%f,%f,%f,%f,%d,%d,%d=", pathfinderX, pathfinderY, pathfinderAngle, pathfinderSize, 255, 255, 255);
+            reportString.append(text1);
+            
+            // report X, Y of food
+            for (int i = 0; i < numFood; ++i)
             {
-                // report X, Y, angle of pathfinding agent
-                char text1[1000];
-                sprintf(text1,"%f,%f,%f,%f,%d,%d,%d=", pathfinderX, pathfinderY, pathfinderAngle, pathfinderSize, 255, 255, 255);
-                reportString.append(text1);
-                
-                // report X, Y of food
-                for (int i = 0; i < numFood; ++i)
+                if (!foodEaten[i])
                 {
-                    if (!foodEaten[i])
-                    {
-                        char text2[1000];
-                        sprintf(text2,"%f,%f,%f,%f,%d,%d,%d=", foodX[i], foodY[i], 0.0, foodSize[i], 0, 255, 0);
-                        reportString.append(text2);
-                    }
+                    char text2[1000];
+                    sprintf(text2, "%f,%f,%f,%f,%d,%d,%d=", foodX[i], foodY[i], 0.0, foodSize[i], 0, 255, 0);
+                    reportString.append(text2);
                 }
-                
-                reportString.append("N");
-                
-            }*/
+            }
+            
+            reportString.append("N");
+            
             /*       END OF REPORT STRING CREATION       */
             
             
             /*       SAVE DATA FOR THE LOD FILE       */
+            
             /*if (data_file != NULL)
             {
-                
+             
             }*/
+            
             /*       END OF DATA GATHERING       */
             
             
@@ -266,6 +291,8 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         }
         /*       END OF SIMULATION LOOP       */
         
+        doBroadcast(reportString);
+        
         // and return some measure of fitness:
         return fmax(0.00000001, pathfinderFitness);
     }
@@ -314,6 +341,45 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         }
         
         positionVal = val;
+    }
+    
+    void setupBroadcast(void)
+    {
+        port = ECHO_PORT;
+        if ( (list_s = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+        {
+            fprintf(stderr, "ECHOSERV: Error creating listening socket.\n");
+        }
+        /*  Set all bytes in socket address structure to
+         zero, and fill in the relevant data members   */
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family      = AF_INET;
+        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servaddr.sin_port        = htons(port);
+        /*  Bind our socket addresss to the
+         listening socket, and call listen()  */
+        if ( bind(list_s, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0 )
+        {
+            fprintf(stderr, "ECHOSERV: Error calling bind()\n");
+        }
+        if ( listen(list_s, LISTENQ) < 0 )
+        {
+            fprintf(stderr, "ECHOSERV: Error calling listen()\n");
+        }
+    }
+    
+    void doBroadcast(std::string data)
+    {
+        if ( (conn_s = accept(list_s, NULL, NULL) ) < 0 )
+        {
+            fprintf(stderr, "ECHOSERV: Error calling accept()\n");
+        }
+        Writeline(conn_s, data.c_str(), data.length());
+        
+        if ( close(conn_s) < 0 )
+        {
+            fprintf(stderr, "ECHOSERV: Error calling close()\n");
+        }
     }
 };
 
