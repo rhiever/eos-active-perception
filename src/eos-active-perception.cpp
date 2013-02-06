@@ -35,6 +35,8 @@
 using namespace ea;
 
 LIBEA_MD_DECL(OUT_FILE_NAME, "ea.fitness_function.out_file_name", std::string);
+LIBEA_MD_DECL(VIDEO_PERIOD, "ea.fitness_function.video_period", int);
+LIBEA_MD_DECL(RECORD_VIDEO, "ea.fitness_function.record_video", bool);
 
 /*! Fitness function for pathfinder.
  */
@@ -73,7 +75,10 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     template <typename RNG, typename EA>
     void initialize(RNG& rng, EA& ea)
     {
-        setupBroadcast();
+        if (get<VIDEO_PERIOD>(ea) > 0)
+        {
+            setupBroadcast();
+        }
         
         // fill lookup tables
         for (int i = 0; i < 360; ++i)
@@ -94,6 +99,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         mkv::build_markov_network(net, ind.repr().begin(), ind.repr().end(), ea);
         
         // initial simulation space setup
+        bool report = get<RECORD_VIDEO>(ea);
         std::string reportString = "";
         double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
         double foodX[numFood], foodY[numFood], foodSize[numFood];
@@ -143,23 +149,26 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
             
             /*       CREATE THE REPORT STRING FOR THE VIDEO       */
             
-            // report X, Y, angle of pathfinding agent
-            char text1[1000];
-            sprintf(text1, "%f,%f,%f,%f,%d,%d,%d=", pathfinderX, pathfinderY, pathfinderAngle, pathfinderSize, 255, 255, 255);
-            reportString.append(text1);
-            
-            // report X, Y of food
-            for (int i = 0; i < numFood; ++i)
+            if (report)
             {
-                if (!foodEaten[i])
+                // report X, Y, angle of pathfinding agent
+                char text1[1000];
+                sprintf(text1, "%f,%f,%f,%f,%d,%d,%d=", pathfinderX, pathfinderY, pathfinderAngle, pathfinderSize, 255, 255, 255);
+                reportString.append(text1);
+                
+                // report X, Y of food
+                for (int i = 0; i < numFood; ++i)
                 {
-                    char text2[1000];
-                    sprintf(text2, "%f,%f,%f,%f,%d,%d,%d=", foodX[i], foodY[i], 0.0, foodSize[i], 0, 255, 0);
-                    reportString.append(text2);
+                    if (!foodEaten[i])
+                    {
+                        char text2[1000];
+                        sprintf(text2, "%f,%f,%f,%f,%d,%d,%d=", foodX[i], foodY[i], 0.0, foodSize[i], 0, 255, 0);
+                        reportString.append(text2);
+                    }
                 }
+                
+                reportString.append("N");
             }
-            
-            reportString.append("N");
             
             /*       END OF REPORT STRING CREATION       */
             
@@ -291,7 +300,11 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         }
         /*       END OF SIMULATION LOOP       */
         
-        doBroadcast(reportString);
+        if (report)
+        {
+            put<RECORD_VIDEO>(false, ea);
+            doBroadcast(reportString);
+        }
         
         // and return some measure of fitness:
         return fmax(0.00000001, pathfinderFitness);
@@ -446,6 +459,31 @@ struct pathfinder_stats : record_statistics_event<EA>
     datafile _df;
 };
 
+//! Record video event.
+template <typename EA>
+struct record_video_event : event
+{
+    record_video_event(EA& ea)
+    {
+        conn = ea.events().record_statistics.connect(boost::bind(&record_video_event::record, this, _1));
+    }
+    ~record_video_event() { }
+    void record(EA& ea)
+    {
+        if (get<VIDEO_PERIOD>(ea) > 0)
+        {
+            if ((ea.current_update() == 0) || ((ea.current_update() % get<VIDEO_PERIOD>(ea)) == 0))
+            {
+                operator()(ea);
+            }
+        }
+    }
+    void operator()(EA& ea)
+    {
+        put<RECORD_VIDEO>(true, ea);
+    }
+};
+
 /*! Define the EA's command-line interface.
  */
 template <typename EA>
@@ -472,6 +510,8 @@ public:
         
         // fitness function options
         add_option<OUT_FILE_NAME>(this);
+        add_option<VIDEO_PERIOD>(this);
+        add_option<RECORD_VIDEO>(this);
         
         // ea options
         add_option<REPRESENTATION_SIZE>(this);
@@ -491,6 +531,7 @@ public:
     virtual void gather_events(EA& ea)
     {
         add_event<pathfinder_stats>(this, ea);
+        add_event<record_video_event>(this, ea);
     };
 };
 LIBEA_CMDLINE_INSTANCE(ea_type, cli);
