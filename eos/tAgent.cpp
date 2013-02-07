@@ -426,7 +426,7 @@ void tAgent::saveToDot(const char *filename)
     // outputs
 	for(node=maxNodes-2;node<maxNodes;node++)
     {
-		fprintf(f,"	%i [shape=circle,style=filled,color=green];\n",node);
+		fprintf(f,"	%i [shape=triangle,style=filled,color=green];\n",node);
     }
     
     // connections
