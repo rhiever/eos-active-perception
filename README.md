@@ -18,12 +18,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Compiling
 ====================
 
-Enter the command ???
+Enter the command ./build_eos
+
+If the console gives an error about permissions, enter:
+
+chmod 755 build_eos
+
+then enter the above build command again.
 
 Usage
 ====================
 
-Type ./abeeda to run the simulation. The following parameters can be passed to aBeeDa:
+Type ./eos to run the simulation. The following parameters can be passed to aBeeDa:
 
 * -e [LOD out file name] [prey genome out file name] [predator genome out file name]: evolve
 * -d [prey genome in file name] [predator genome in file name]: display 
