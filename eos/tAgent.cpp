@@ -524,50 +524,71 @@ void tAgent::setupDots(int x, int y,double spacing){
 void tAgent::saveLogicTable(const char *filename)
 {
     FILE *f=fopen(filename, "w");
-	int i,j;
     
-    fprintf(f,"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,p15,,o1,o2\n");
-    //fprintf(f,"s11,p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,p22,p23,,o1,o2\n");
+    // determine which nodes to print (no connections = do not print)
+    bool print_node[maxNodes];
     
-    for(i = 0; i < (int)pow(2.0, 13.0); i++)
+    for(int i = 0; i < maxNodes; i++)
+    {
+        print_node[i] = false;
+    }
+    
+    for(int i=0;i<hmmus.size();i++)
+    {
+        for(int j=0;j<hmmus[i]->ins.size();j++)
+        {
+            print_node[hmmus[i]->ins[j]] = true;
+        }
+        
+        for(int k=0;k<hmmus[i]->outs.size();k++)
+        {
+            print_node[hmmus[i]->outs[k]] = true;
+        }
+    }
+    
+    vector<int> statesUsed;
+    
+    for (int i = 0; i < maxNodes - 2; ++i)
+    {
+        if (print_node[i])
+        {
+            statesUsed.push_back(i);
+            fprintf(f,"s%i,", i);
+        }
+    }
+    
+    fprintf(f,",o1,o2\n");
+    
+    for(int i = 0; i < (int)pow(2.0, statesUsed.size()); i++)
     {
         map<vector<int>, int> outputCounts;
         const int NUM_REPEATS = 1001;
         
         for (int repeat = 1; repeat < NUM_REPEATS; ++repeat)
         {
-            for(j = 0; j < 30; j++)
+            int stateCount = 0;
+            
+            for (int j = 0; j < maxNodes - 2; ++j)
             {
-                if (j < 12)
+                if (j == statesUsed[stateCount])
                 {
-                    if(repeat == 1)
+                    if (repeat == 1)
                     {
-                        fprintf(f,"%i,",(i >> j) & 1);
+                        fprintf(f,"%i,",(i >> stateCount) & 1);
                     }
                     
-                    states[j] = (i >> j) & 1;
-                }
-                else if (j == 15)
-                {
-                    if(repeat == 1)
-                    {
-                        fprintf(f,"%i,",(i >> 12) & 1);
-                    }
+                    states[j] = (i >> stateCount) & 1;
                     
-                    states[j] = (i >> 12) & 1;
-                }
-                else
-                {
-                    states[j] = 0;
+                    ++stateCount;
                 }
             }
             
             updateStates();
             
             vector<int> output;
-            // order: 30 31
-            output.push_back(states[30]);
-            output.push_back(states[31]);
+            // order: 254 255
+            output.push_back(states[maxNodes - 2]);
+            output.push_back(states[maxNodes - 1]);
             
             if (outputCounts.count(output) > 0)
             {

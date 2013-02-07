@@ -27,7 +27,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		8464C10E14683D7F00BDA7EB /* aBeeDa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = aBeeDa; sourceTree = BUILT_PRODUCTS_DIR; };
+		8464C10E14683D7F00BDA7EB /* aBeeDa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = aBeeDa; path = "eos-ap"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BAA8077D16C2D2CE00B5F602 /* eos.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; path = eos.1; sourceTree = "<group>"; };
 		BAA8077F16C2D2CE00B5F602 /* globalConst.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = globalConst.h; sourceTree = "<group>"; };
 		BAA8078016C2D2CE00B5F602 /* helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = helper.cpp; sourceTree = "<group>"; };
@@ -72,10 +72,10 @@
 			isa = PBXGroup;
 			children = (
 				BAA8077D16C2D2CE00B5F602 /* eos.1 */,
+				BAA8078216C2D2CE00B5F602 /* main.cpp */,
 				BAA8077F16C2D2CE00B5F602 /* globalConst.h */,
 				BAA8078016C2D2CE00B5F602 /* helper.cpp */,
 				BAA8078116C2D2CE00B5F602 /* helper.h */,
-				BAA8078216C2D2CE00B5F602 /* main.cpp */,
 				BAA8078316C2D2CE00B5F602 /* tAgent.cpp */,
 				BAA8078416C2D2CE00B5F602 /* tAgent.h */,
 				BAA8078516C2D2CE00B5F602 /* tGame.cpp */,

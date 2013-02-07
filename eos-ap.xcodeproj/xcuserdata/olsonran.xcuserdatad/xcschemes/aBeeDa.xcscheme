@@ -55,6 +55,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-df pathfinder.genome pathfinder.dot"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-lt pathfinder.genome pathfinder.txt"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
