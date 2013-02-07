@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
     
     if (make_dot)
     {
-        pathfinderAgent->saveToDot(pathfinderDotFileName.c_str(), false);
+        pathfinderAgent->saveToDot(pathfinderDotFileName.c_str());
         exit(0);
     }
     

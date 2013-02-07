@@ -8,3 +8,7 @@
 *.csv
 
 *.mov
+
+*.dot
+
+*.genome

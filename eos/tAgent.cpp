@@ -377,7 +377,7 @@ void tAgent::showPhenotype(void)
 	cout<<"------"<<endl;
 }
 
-void tAgent::saveToDot(const char *filename, bool predator)
+void tAgent::saveToDot(const char *filename)
 {
 	FILE *f=fopen(filename,"w+t");
 	int i,j,k,node;
@@ -385,9 +385,9 @@ void tAgent::saveToDot(const char *filename, bool predator)
 	fprintf(f,"	ranksep=2.0;\n");
     
     // determine which nodes to print (no connections = do not print)
-    bool print_node[32];
+    bool print_node[maxNodes];
     
-    for(i = 0; i < 32; i++)
+    for(i = 0; i < maxNodes; i++)
     {
         print_node[i] = false;
     }
@@ -405,8 +405,8 @@ void tAgent::saveToDot(const char *filename, bool predator)
         }
     }
     
-    // swarm agent input layer
-	for(node=0;node<12;node++)
+    // input layer
+	for(node=0;node<181;node++)
     {
         if(print_node[node])
         {
@@ -414,43 +414,17 @@ void tAgent::saveToDot(const char *filename, bool predator)
         }
     }
     
-    // for prey brains
-    if (!predator)
+    // hidden states
+    for(node=181;node<maxNodes-2;node++)
     {
-        // predator input layer
-        for(node=12;node<24;node++)
+        if(print_node[node])
         {
-            if(print_node[node])
-            {
-                fprintf(f,"	%i [shape=invtriangle,style=filled,color=red];\n",node);
-            }
-        }
-        
-        // hidden states
-        for(node=24;node<30;node++)
-        {
-            if(print_node[node])
-            {
-                fprintf(f,"	%i [shape=circle,color=black];\n",node);
-            }
-        }
-    }
-    
-    // for predator brains (no predator-detecting retina, more hidden states)
-    else
-    {
-        // hidden states
-        for(node=12;node<30;node++)
-        {
-            if(print_node[node])
-            {
-                fprintf(f,"	%i [shape=circle,color=black];\n",node);
-            }
+            fprintf(f,"	%i [shape=circle,color=black];\n",node);
         }
     }
     
     // outputs
-	for(node=30;node<32;node++)
+	for(node=maxNodes-2;node<maxNodes;node++)
     {
 		fprintf(f,"	%i [shape=circle,style=filled,color=green];\n",node);
     }
@@ -462,71 +436,52 @@ void tAgent::saveToDot(const char *filename, bool predator)
         {
 			for(k=0;k<hmmus[i]->outs.size();k++)
             {
-				fprintf(f,"	%i	->	%i;\n",hmmus[i]->ins[j],hmmus[i]->outs[k]);
+                // don't show connections leading to inputs
+                if (hmmus[i]->outs[k] > 180)
+                {
+                    fprintf(f,"	%i	->	%i;\n",hmmus[i]->ins[j],hmmus[i]->outs[k]);
+                }
             }
 		}
 	}
     
     // which nodes go on the same level
-    if (predator)
+    
+    // inputs
+    fprintf(f,"	{ rank=same; ");
+    
+    for(node = 0; node < 181; node++)
     {
-        // inputs
-        fprintf(f,"	{ rank=same; ");
-        
-        for(node = 0; node < 12; node++)
+        if(print_node[node])
         {
-            if(print_node[node])
-            {
-                fprintf(f, "%d; ", node);
-            }
-        }
-        
-        fprintf(f, "}\n");
-        
-        // hidden states
-        fprintf(f,"	{ rank=same; ");
-        
-        for(node = 12; node < 30; node++)
-        {
-            if(print_node[node])
-            {
-                fprintf(f, "%d; ", node);
-            }
+            fprintf(f, "%d; ", node);
         }
     }
-    else
+    
+    fprintf(f, "}\n");
+    
+    // hidden states
+    fprintf(f,"	{ rank=same; ");
+    
+    for(node = 181; node < maxNodes-2; node++)
     {
-        // inputs
-        fprintf(f,"	{ rank=same; ");
-        
-        for(node = 0; node < 24; node++)
+        if(print_node[node])
         {
-            if(print_node[node])
-            {
-                fprintf(f, "%d; ", node);
-            }
-        }
-        
-        fprintf(f, "}\n");
-        
-        // hidden states
-        fprintf(f,"	{ rank=same; ");
-        
-        for(node = 24; node < 30; node++)
-        {
-            if(print_node[node])
-            {
-                fprintf(f, "%d; ", node);
-            }
+            fprintf(f, "%d; ", node);
         }
     }
-        
+    
     fprintf(f, "}\n");
     
     // outputs
-	fprintf(f,"	{ rank=same; 30; 31; }\n");
+    fprintf(f,"	{ rank=same; ");
     
-	fprintf(f,"}\n");
+    for(node = maxNodes-2; node < maxNodes; node++)
+    {
+        fprintf(f, "%d; ", node);
+    }
+    
+	fprintf(f,"}\n}");
 	fclose(f);
 }
 
