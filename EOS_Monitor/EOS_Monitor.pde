@@ -162,7 +162,7 @@ void setup()
   int mo = month();
   int y = year();
   
-  String movname = "video-" + y + "-" + mo + "-" + d + "-" + h + "-" + mi + "-" + s + ".mov";
+  String movname = "swarm-" + y + "-" + mo + "-" + d + "-" + h + "-" + mi + "-" + s + ".mov";
   
   mm = new MovieMaker(this, width, height, movname, 30, MovieMaker.ANIMATION, MovieMaker.BEST);
   background(#000000);
