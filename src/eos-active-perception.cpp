@@ -320,6 +320,11 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         
         if (report)
         {
+            if (ea.current_update() + get<VIDEO_PERIOD>(ea) > get<RUN_UPDATES>(ea))
+            {
+                reportString.append("X");
+            }
+            
             doBroadcast(reportString);
         }
         

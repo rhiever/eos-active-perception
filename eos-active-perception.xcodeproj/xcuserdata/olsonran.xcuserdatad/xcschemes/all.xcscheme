@@ -60,7 +60,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-c etc/eos-active-perception.cfg --ea.rng.seed=5 --ea.fitness_function.out_file_name=run5stats.csv --ea.fitness_function.video_period=0"
+            argument = "-c etc/eos-active-perception.cfg --ea.rng.seed=5 --ea.fitness_function.out_file_name=run5stats.csv --ea.fitness_function.video_period=10 --ea.run.updates=21"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

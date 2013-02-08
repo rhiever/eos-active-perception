@@ -29,7 +29,6 @@ void drawArea(){
   //int R=128,G=128,B=128;
   if((data!=null)&&(currentStep>0))
   {
-    //if(currentStep==1)
      background(0);
 
      if (showLegend && currentStep < 200)
@@ -162,7 +161,7 @@ void setup()
   int mo = month();
   int y = year();
   
-  String movname = "swarm-" + y + "-" + mo + "-" + d + "-" + h + "-" + mi + "-" + s + ".mov";
+  String movname = "video-" + y + "-" + mo + "-" + d + "-" + h + "-" + mi + "-" + s + ".mov";
   
   mm = new MovieMaker(this, width, height, movname, 30, MovieMaker.ANIMATION, MovieMaker.BEST);
   background(#000000);
