@@ -36,7 +36,6 @@ using namespace ea;
 
 LIBEA_MD_DECL(OUT_FILE_NAME, "ea.fitness_function.out_file_name", std::string);
 LIBEA_MD_DECL(VIDEO_PERIOD, "ea.fitness_function.video_period", int);
-LIBEA_MD_DECL(RECORD_VIDEO, "ea.fitness_function.record_video", bool);
 
 /*! Fitness function for pathfinder.
  */
@@ -63,14 +62,17 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     #define     totalStepsInSimulation          2000
     #define     gridX                           400.0
     #define     gridY                           400.0
+    #define     gridXAcross                     2.0 * gridX
+    #define     gridYAcross                     2.0 * gridY
     #define     collisionDist                   5.0 * 5.0
     #define     boundaryDist                    400.0
-    #define     numFood                         50
+    #define     numFood                         100
     
     // precalculated lookup tables for the game
     double cosLookup[360];
     double sinLookup[360];
     
+    // internal flag indicating whether a video should be generated for the current simulation
     bool report;
     
     /*! Initialize this fitness function -- load data, etc. */
@@ -78,6 +80,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     void initialize(RNG& rng, EA& ea)
     {
         report = false;
+        
         if (get<VIDEO_PERIOD>(ea) > 0)
         {
             setupBroadcast();
@@ -101,7 +104,7 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
     
     ~pathfinder_fitness()
     {
-        // end signal to processing to close video
+        // send signal to processing to close video
         ;
     }
     
@@ -116,38 +119,20 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         mkv::build_markov_network(net, ind.repr().begin(), ind.repr().end(), ea);
         
         // initial simulation space setup
-//        bool report = get<RECORD_VIDEO>(ea);
         std::string reportString = "";
         double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
         double foodX[numFood], foodY[numFood], foodSize[numFood];
         bool foodEaten[numFood];
         
-        pathfinderX = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridX) - gridX;
-        pathfinderY = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridY) - gridY;
+        pathfinderX = 0.0;//0.5 * ((2.0 * rng.uniform_real(0, 1) * gridX) - gridX);
+        pathfinderY = 0.0;//0.5 * ((2.0 * rng.uniform_real(0, 1) * gridY) - gridY);
         pathfinderAngle = (int)(rng.uniform_real(0, 1) * 360.0);
         
         for (int i = 0; i < numFood; ++i)
         {
             bool goodPos = true;
             
-            do
-            {
-                goodPos = true;
-                foodX[i] = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridX) - gridX;
-                foodY[i] = 0.95 * (2.0 * rng.uniform_real(0, 1) * gridY) - gridY;
-                
-                for (int j = 0; j < i; ++j)
-                {
-                    if (calcDistanceSquared(foodX[i], foodY[i], foodX[j], foodY[j]) <= pathfinderVisionRange)
-                    {
-                        goodPos = false;
-                        break;
-                    }
-                }
-                
-            } while (!goodPos);
-            
-            if (rng.uniform_real(0, 1) < 0.75)
+            if (i > numFood / 4)
             {
                 foodSize[i] = 5.0;
             }
@@ -155,6 +140,22 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
             {
                 foodSize[i] = 20.0;
             }
+            
+            do
+            {
+                goodPos = true;
+                foodX[i] = 0.95 * ((2.0 * rng.uniform_real(0, 1) * gridX) - gridX);
+                foodY[i] = 0.95 * ((2.0 * rng.uniform_real(0, 1) * gridY) - gridY);
+                
+                for (int j = 0; j < i; ++j)
+                {
+                    if (calcDistanceSquared(foodX[i], foodY[i], foodX[j], foodY[j]) - pow(foodSize[i], 2.0) / 2.0 - pow(foodSize[j], 2.0) / 2.0 <= pathfinderVisionRange)
+                    {
+                        goodPos = false;
+                        break;
+                    }
+                }
+            } while (!goodPos);
             
             foodEaten[i] = false;
         }
@@ -319,7 +320,6 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         
         if (report)
         {
-            put<RECORD_VIDEO>(false, ea);
             doBroadcast(reportString);
         }
         
@@ -327,14 +327,74 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         return fmax(0.00000001, pathfinderFitness);
     }
     
-    // calculates the distance^2 between two points
+    
+    // wraps a position around a preset boundary (toroidal world)
+    void applyBoundary(double& positionVal)
+    {
+        double val = positionVal;
+        
+        if (fabs(val) > boundaryDist)
+        {
+            if (val < 0)
+            {
+                val = boundaryDist;// - 10.0;
+            }
+            else
+            {
+                val = -boundaryDist;// + 10.0;
+            }
+        }
+        
+        positionVal = val;
+    }
+    
+    /*// maintains a position within a preset boundary
+     void applyBoundary(double& positionVal)
+     {
+         double val = positionVal;
+         
+         if (fabs(val) > boundaryDist)
+         {
+            if (val < 0)
+            {
+                val = -1.0 * boundaryDist;
+            }
+            else
+            {
+                val = boundaryDist;
+            }
+         }
+         
+         positionVal = val;
+     }*/
+    
+    // calculates the distance^2 between two points (toroidal world)
     double calcDistanceSquared(double fromX, double fromY, double toX, double toY)
     {
-        double diffX = fromX - toX;
-        double diffY = fromY - toY;
+        double diffX = fabs(fromX - toX);
+        double diffY = fabs(fromY - toY);
+        
+        if (diffX > gridX)
+        {
+            diffX = gridXAcross - diffX;
+        }
+        
+        if (diffY > gridY)
+        {
+            diffY = gridYAcross - diffY;
+        }
         
         return ( diffX * diffX ) + ( diffY * diffY );
     }
+    
+    /*// calculates the distance^2 between two points
+     double calcDistanceSquared(double fromX, double fromY, double toX, double toY)
+     {
+         double diffX = fromX - toX;
+         double diffY = fromY - toY;
+         
+         return ( diffX * diffX ) + ( diffY * diffY );
+     }*/
     
     // calculates the angle between two agents
     double calcAngle(double fromX, double fromY, double fromAngle, double toX, double toY)
@@ -351,26 +411,6 @@ struct pathfinder_fitness : fitness_function<unary_fitness<double>, constantS, a
         int secondTerm = (int)((Ux * Vx) + (Uy * Vy));
         
         return atan2(firstTerm, secondTerm) * 180.0 / cPI;
-    }
-    
-    // maintains a position within a preset boundary
-    void applyBoundary(double& positionVal)
-    {
-        double val = positionVal;
-        
-        if (fabs(val) > boundaryDist)
-        {
-            if (val < 0)
-            {
-                val = -1.0 * boundaryDist;
-            }
-            else
-            {
-                val = boundaryDist;
-            }
-        }
-        
-        positionVal = val;
     }
     
     void setupBroadcast(void)
@@ -520,7 +560,6 @@ public:
         // fitness function options
         add_option<OUT_FILE_NAME>(this);
         add_option<VIDEO_PERIOD>(this);
-        add_option<RECORD_VIDEO>(this);
         
         // ea options
         add_option<REPRESENTATION_SIZE>(this);
