@@ -24,19 +24,19 @@ int frame=0;//1000000;
 boolean showLegend = true;
 
 
-void drawArea(){
-  //noStroke();
-  //int R=128,G=128,B=128;
+void drawArea()
+{
   if((data!=null)&&(currentStep>0))
   {
-     background(0);
+    // remove this to make a trace of agent movement
+     background(255, 255, 255);
 
      if (showLegend && currentStep < 200)
      {
-       fill(255, 255, 255);
-       text("White - pathfinder", 10, 40);
+       fill(0, 0, 0);
+       text("Black - pathfinder", 10, 40);
       
-       fill(0, 255, 0);
+       fill(0, 200, 0);
        text("Green - food", 10, 65);
      }
      
@@ -68,8 +68,6 @@ void drawArea(){
           B[j]=Integer.parseInt(D[6]);
       }
       
-      strokeWeight(1.0);
-      
       for(int j=0;j<P.length;j++)
       {
             if(t==-1)
@@ -79,16 +77,24 @@ void drawArea(){
               line((int)(x[j]+(width/2)),(int)(y[j]+(height/2)),(int)(x[j]+(width/2)+(cos(a[j]*(PI/180.0))*3)),(int)(y[j]+(height/2)+(sin(a[j]*(PI/180.0))*3)));
               set((int)(x[j]+(width/2)),(int)(y[j]+(height/2)),color(32,32,32));
             }
-            else{
-              strokeWeight(s[j]);
-              //if(j==0)
-              stroke(color(R[j],G[j],B[j]));
-              //else
-              //  stroke(color(R,G,B));
-              line((int)(x[j]+(width/2)),(int)(y[j]+(height/2)),(int)(x[j]+(width/2)+(cos(a[j]*(PI/180.0))*3)),(int)(y[j]+(height/2)+(sin(a[j]*(PI/180.0))*3)));
-              
-              strokeWeight(2.0);
-              //line((int)(x[j]+(width/2)),(int)(y[j]+(height/2)),(int)(x[j]+(width/2)+(cos(a[j]*(PI/180.0))*20)),(int)(y[j]+(height/2)+(sin(a[j]*(PI/180.0))*20)));
+            else
+            {
+              strokeWeight(1);
+              fill(color(R[j],G[j],B[j]));
+                    
+              if(R[j] == 0 && G[j] == 0 && B[j] == 0)
+              {
+                triangle((int)(x[j]+(width/2)+(cos(a[j]*(PI/180.0))*s[j])),
+                          (int)(y[j]+(height/2)+(sin(a[j]*(PI/180.0))*s[j])),
+                          (int)(x[j]+(width/2)+(cos((a[j]-135)*(PI/180.0))*s[j])),
+                          (int)(y[j]+(height/2)+(sin((a[j]-135)*(PI/180.0))*s[j])),
+                          (int)(x[j]+(width/2)+(cos((a[j]+135)*(PI/180.0))*s[j])),
+                          (int)(y[j]+(height/2)+(sin((a[j]+135)*(PI/180.0))*s[j])));
+              }
+              else
+              {
+                ellipse(x[j]+(width/2), y[j]+(height/2), s[j], s[j]);
+              }
               
               // un-comment to project predator retina
               /*if(R[j] == 255 && G[j] == 0 && B[j] == 0)
@@ -105,8 +111,6 @@ void drawArea(){
               }*/
             }
         }
-//        fill(color(0,255,0));
-//        ellipse((int)(-60+(width/2)),(int)(-60+(height/2)),20,20);
      }
     if((currentStep&1)==0)
     {
@@ -164,7 +168,7 @@ void setup()
   String movname = "video-" + y + "-" + mo + "-" + d + "-" + h + "-" + mi + "-" + s + ".mov";
   
   mm = new MovieMaker(this, width, height, movname, 30, MovieMaker.ANIMATION, MovieMaker.BEST);
-  background(#000000);
+  background(255, 255, 255);
   fill(0);
   noStroke();
   c[0]=color(0,0,0);
