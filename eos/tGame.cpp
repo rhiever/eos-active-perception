@@ -75,7 +75,7 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report)
     {
         bool goodPos = true;
         
-        if (i > numFood / 4)
+        if (i > numFood * 0.25)
         {
             foodSize[i] = smallFoodSize;
         }
@@ -145,7 +145,7 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report)
         
         
         // clear the pathfinder sensors
-        for (int i = 0; i < 181; ++i)
+        for (int i = 0; i < 181 * 2; ++i)
         {
             pathfinderAgent->states[i] = 0;
         }
@@ -186,14 +186,6 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report)
                     {
                         pathfinderAgent->states[j + 90] = 1;
                     }
-                    
-                    /*if (distToFood < largeFoodSize)
-                    {
-                        for (int j = activateFromAngle; j <= activateToAngle; ++j)
-                        {
-                            pathfinderAgent->states[181 + j + 90] = 1;
-                        }
-                    }*/
                 }
             }
         }

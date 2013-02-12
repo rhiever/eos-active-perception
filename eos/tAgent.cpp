@@ -380,66 +380,111 @@ void tAgent::showPhenotype(void)
 void tAgent::saveToDot(const char *filename)
 {
 	FILE *f=fopen(filename,"w+t");
-	int i,j,k,node;
 	fprintf(f,"digraph brain {\n");
 	fprintf(f,"	ranksep=2.0;\n");
     
-    // determine which nodes to print (no connections = do not print)
-    bool print_node[maxNodes];
+    // determine which nodes to print (no connections to output = do not print)
+    bool connects_to_input[maxNodes];
+    bool connects_to_output[maxNodes];
     
-    for(i = 0; i < maxNodes; i++)
+    for(int i = 0; i < maxNodes; ++i)
     {
-        print_node[i] = false;
-    }
-    
-    for(i=0;i<hmmus.size();i++)
-    {
-        for(j=0;j<hmmus[i]->ins.size();j++)
+        if (i <= 180)
         {
-            print_node[hmmus[i]->ins[j]] = true;
+            connects_to_input[i] = true;
+        }
+        else
+        {
+            connects_to_input[i] = false;
         }
         
-        for(k=0;k<hmmus[i]->outs.size();k++)
+        connects_to_output[i] = false;
+    }
+    
+    // outputs of course "connect" to themselves!
+    connects_to_output[maxNodes - 1] = connects_to_output[maxNodes - 2] = true;
+    
+    for (int reps = 0; reps < 5; ++reps)
+    {
+        for (int i = 0; i < hmmus.size(); ++i)
         {
-            print_node[hmmus[i]->outs[k]] = true;
+            // connects to inputs?
+            for (int j = 0; j < hmmus[i]->ins.size(); ++j)
+            {
+                if (hmmus[i]->ins[j] <= 180 || connects_to_input[hmmus[i]->ins[j]])
+                {
+                    for (int k = 0; k < hmmus[i]->outs.size(); ++k)
+                    {
+                        connects_to_input[hmmus[i]->outs[k]] = true;
+                    }
+                }
+            }
+            
+            // connects to outputs?
+            for (int j = 0; j < hmmus[i]->outs.size(); ++j)
+            {
+                if (hmmus[i]->outs[j] >= 254 || connects_to_output[hmmus[i]->outs[j]])
+                {
+                    for (int k = 0; k < hmmus[i]->ins.size(); ++k)
+                    {
+                        connects_to_output[hmmus[i]->ins[k]] = true;
+                    }
+                }
+            }
         }
     }
     
-    // input layer
-	for(node=0;node<181;node++)
+    /*for(int i=0;i<hmmus.size();i++)
     {
-        if(print_node[node])
+        for(int j=0;j<hmmus[i]->ins.size();j++)
+        {
+            connects_to_output[hmmus[i]->ins[j]] = true;
+        }
+        
+        for(int k=0;k<hmmus[i]->outs.size();k++)
+        {
+            connects_to_output[hmmus[i]->outs[k]] = true;
+        }
+    }*/
+    
+    // input layer
+	for(int node=0;node<181;node++)
+    {
+        if(connects_to_input[node] && connects_to_output[node])
         {
             fprintf(f,"	%i [shape=invtriangle,style=filled,color=cornflowerblue];\n",node);
         }
     }
     
     // hidden states
-    for(node=181;node<maxNodes-2;node++)
+    for(int node=181;node<maxNodes-2;node++)
     {
-        if(print_node[node])
+        if(connects_to_input[node] && connects_to_output[node])
         {
             fprintf(f,"	%i [shape=circle,color=black];\n",node);
         }
     }
     
     // outputs
-	for(node=maxNodes-2;node<maxNodes;node++)
+	for(int node=maxNodes-2;node<maxNodes;node++)
     {
 		fprintf(f,"	%i [shape=triangle,style=filled,color=green];\n",node);
     }
     
     // connections
-	for(i=0;i<hmmus.size();i++)
+	for(int i=0;i<hmmus.size();i++)
     {
-		for(j=0;j<hmmus[i]->ins.size();j++)
+		for(int j=0;j<hmmus[i]->ins.size();j++)
         {
-			for(k=0;k<hmmus[i]->outs.size();k++)
+            if (connects_to_output[hmmus[i]->ins[j]] && connects_to_input[hmmus[i]->ins[j]])
             {
-                // don't show connections leading to inputs
-                if (hmmus[i]->outs[k] > 180)
+                for(int k=0;k<hmmus[i]->outs.size();k++)
                 {
-                    fprintf(f,"	%i	->	%i;\n",hmmus[i]->ins[j],hmmus[i]->outs[k]);
+                    // don't show connections leading to inputs
+                    if (hmmus[i]->outs[k] > 180)
+                    {
+                        fprintf(f,"	%i	->	%i;\n",hmmus[i]->ins[j],hmmus[i]->outs[k]);
+                    }
                 }
             }
 		}
@@ -450,9 +495,9 @@ void tAgent::saveToDot(const char *filename)
     // inputs
     fprintf(f,"	{ rank=same; ");
     
-    for(node = 0; node < 181; node++)
+    for(int node = 0; node < 181; node++)
     {
-        if(print_node[node])
+        if(connects_to_input[node] && connects_to_output[node])
         {
             fprintf(f, "%d; ", node);
         }
@@ -463,9 +508,9 @@ void tAgent::saveToDot(const char *filename)
     // hidden states
     fprintf(f,"	{ rank=same; ");
     
-    for(node = 181; node < maxNodes-2; node++)
+    for(int node = 181; node < maxNodes-2; node++)
     {
-        if(print_node[node])
+        if(connects_to_input[node] && connects_to_output[node])
         {
             fprintf(f, "%d; ", node);
         }
@@ -476,7 +521,7 @@ void tAgent::saveToDot(const char *filename)
     // outputs
     fprintf(f,"	{ rank=same; ");
     
-    for(node = maxNodes-2; node < maxNodes; node++)
+    for(int node = maxNodes-2; node < maxNodes; node++)
     {
         fprintf(f, "%d; ", node);
     }
@@ -525,41 +570,90 @@ void tAgent::saveLogicTable(const char *filename)
 {
     FILE *f=fopen(filename, "w");
     
-    // determine which nodes to print (no connections = do not print)
-    bool print_node[maxNodes];
+    // determine which nodes to print (no connections to output = do not print)
+    bool connects_to_input[maxNodes];
+    bool connects_to_output[maxNodes];
     
-    for(int i = 0; i < maxNodes; i++)
+    for(int i = 0; i < maxNodes; ++i)
     {
-        print_node[i] = false;
-    }
-    
-    for(int i=0;i<hmmus.size();i++)
-    {
-        for(int j=0;j<hmmus[i]->ins.size();j++)
+        if (i <= 180)
         {
-            print_node[hmmus[i]->ins[j]] = true;
+            connects_to_input[i] = true;
+        }
+        else
+        {
+            connects_to_input[i] = false;
         }
         
-        for(int k=0;k<hmmus[i]->outs.size();k++)
+        connects_to_output[i] = false;
+    }
+    
+    // outputs of course "connect" to themselves!
+    connects_to_output[maxNodes - 1] = connects_to_output[maxNodes - 2] = true;
+    
+    for (int reps = 0; reps < 5; ++reps)
+    {
+        for (int i = 0; i < hmmus.size(); ++i)
         {
-            print_node[hmmus[i]->outs[k]] = true;
+            // connects to inputs?
+            for (int j = 0; j < hmmus[i]->ins.size(); ++j)
+            {
+                if (hmmus[i]->ins[j] <= 180 || connects_to_input[hmmus[i]->ins[j]])
+                {
+                    for (int k = 0; k < hmmus[i]->outs.size(); ++k)
+                    {
+                        connects_to_input[hmmus[i]->outs[k]] = true;
+                    }
+                }
+            }
+            
+            // connects to outputs?
+            for (int j = 0; j < hmmus[i]->outs.size(); ++j)
+            {
+                if (hmmus[i]->outs[j] >= 254 || connects_to_output[hmmus[i]->outs[j]])
+                {
+                    for (int k = 0; k < hmmus[i]->ins.size(); ++k)
+                    {
+                        connects_to_output[hmmus[i]->ins[k]] = true;
+                    }
+                }
+            }
         }
     }
+    
+    /*for(int i=0;i<hmmus.size();i++)
+     {
+         for(int j=0;j<hmmus[i]->ins.size();j++)
+         {
+            connects_to_output[hmmus[i]->ins[j]] = true;
+         }
+         
+         for(int k=0;k<hmmus[i]->outs.size();k++)
+         {
+            connects_to_output[hmmus[i]->outs[k]] = true;
+         }
+     }*/
     
     vector<int> statesUsed;
     
     for (int i = 0; i < maxNodes - 2; ++i)
     {
-        if (print_node[i])
+        if (connects_to_input[i] && connects_to_output[i])
         {
             statesUsed.push_back(i);
-            fprintf(f,"s%i,", i);
         }
     }
     
-    fprintf(f,",o1,o2\n");
+    fprintf(f, ".i %d\n.o 2\n.ilb", (int)statesUsed.size());
     
-    for(int i = 0; i < (int)pow(2.0, statesUsed.size()); i++)
+    for (int i = 0; i < statesUsed.size(); ++i)
+    {
+        fprintf(f," s%i", statesUsed[i]);
+    }
+    
+    fprintf(f, "\n.ob o1 o2\n");
+    
+    for(long i = 0; i < pow(2.0, statesUsed.size()); ++i)
     {
         map<vector<int>, int> outputCounts;
         const int NUM_REPEATS = 1001;
@@ -574,7 +668,7 @@ void tAgent::saveLogicTable(const char *filename)
                 {
                     if (repeat == 1)
                     {
-                        fprintf(f,"%i,",(i >> stateCount) & 1);
+                        fprintf(f, "%lu ", (i >> stateCount) & 1);
                     }
                     
                     states[j] = (i >> stateCount) & 1;
@@ -613,10 +707,12 @@ void tAgent::saveLogicTable(const char *filename)
                     }
                 }
                 
-                fprintf(f, ",%i,%i\n", mostCommonOutput->first[0], mostCommonOutput->first[1]);
+                fprintf(f, "%i %i\n", mostCommonOutput->first[0], mostCommonOutput->first[1]);
             }
         }
 	}
+    
+    fprintf(f, ".e\n");
     
     fclose(f);
 }
