@@ -39,6 +39,7 @@
 #define     gridYAcross                     2.0 * gridY
 #define     boundaryDist                    400.0
 #define     numFood                         100
+#define     foodPeriod                      100
 
 // precalculated lookup tables for the game
 double cosLookup[360];
@@ -107,6 +108,26 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
     
     for(int step = 0; step < totalStepsInSimulation; ++step)
     {
+        
+        /*       UPDATE FOOD SIZES                            */
+        
+        int stepsIntoSection = step % foodPeriod;
+        
+        if (stepsIntoSection > foodPeriod / 2)
+        {
+            stepsIntoSection = foodPeriod - stepsIntoSection;
+        }
+        
+        for (int i = 0; i < numFood; ++i)
+        {
+            if (foodSize[i] != smallFoodSize)
+            {
+                foodSize[i] = (5.01 * 5.01 + (stepsIntoSection / (double)(foodPeriod / 2.0)) * (largeFoodSize - 5.01 * 5.01));
+            }
+        }
+        
+        /*       END UPDATE FOOD SIZES                        */
+        
         
         /*       CREATE THE REPORT STRING FOR THE VIDEO       */
         if(report)

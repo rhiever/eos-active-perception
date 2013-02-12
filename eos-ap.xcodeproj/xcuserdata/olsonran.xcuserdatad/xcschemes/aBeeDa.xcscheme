@@ -51,11 +51,11 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-e lod.csv pathfinder.genome -g 3000 -v 200"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-df pathfinder.genome pathfinder.dot"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-lt pathfinder.genome pathfinder.txt"

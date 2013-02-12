@@ -438,12 +438,12 @@ void tAgent::saveToDot(const char *filename)
     {
         for(int j=0;j<hmmus[i]->ins.size();j++)
         {
-            connects_to_output[hmmus[i]->ins[j]] = true;
+            connects_to_input[hmmus[i]->ins[j]] = connects_to_output[hmmus[i]->ins[j]] = true;
         }
         
         for(int k=0;k<hmmus[i]->outs.size();k++)
         {
-            connects_to_output[hmmus[i]->outs[k]] = true;
+            connects_to_input[hmmus[i]->outs[k]] = connects_to_output[hmmus[i]->outs[k]] = true;
         }
     }*/
     
