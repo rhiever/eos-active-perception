@@ -57,7 +57,7 @@ tGame::tGame()
 tGame::~tGame() { }
 
 // runs the simulation for the given agent(s)
-string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report)
+string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report, double ratio)
 {
     string reportString = "";
     double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
@@ -75,7 +75,7 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report)
     {
         bool goodPos = true;
         
-        if (i > numFood * 0.25)
+        if (i > numFood * ratio)
         {
             foodSize[i] = smallFoodSize;
         }

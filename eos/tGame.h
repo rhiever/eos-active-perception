@@ -52,7 +52,7 @@ class tGame{
 public:
     tExperiment theExperiment;
     void loadExperiment(char *filename);
-    string executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report);
+    string executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report, double ratio);
     tGame();
     ~tGame();
     double calcDistanceSquared(double fromX, double fromY, double toX, double toY);

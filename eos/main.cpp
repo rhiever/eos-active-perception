@@ -57,6 +57,7 @@ struct    sockaddr_in servaddr;  /*  socket address structure  */
 char      buffer[MAX_LINE];      /*  character buffer          */
 char     *endptr;                /*  for strtol()              */
 
+double  clamp(double value, double low, double high);
 void    setupBroadcast(void);
 void    doBroadcast(string data);
 string  findBestRun(tAgent *pathfinderAgent);
@@ -376,7 +377,7 @@ int main(int argc, char *argv[])
         
 		for(int i = 0; i < populationSize; ++i)
         {
-            game->executeGame(pathfinderAgents[i], NULL, false);
+            game->executeGame(pathfinderAgents[i], NULL, false, clamp((double)update / (double)totalGenerations, 0.1, 0.75));
             
             pathfinderAvgFitness += pathfinderAgents[i]->fitness;
             
@@ -404,7 +405,7 @@ int main(int argc, char *argv[])
             
             if (update % make_video_frequency == 0 || finalGeneration)
             {
-                string bestString = game->executeGame(bestPathfinderAgent, NULL, true);
+                string bestString = game->executeGame(bestPathfinderAgent, NULL, true, clamp((double)update / (double)totalGenerations, 0.1, 0.75));
                 
                 if (finalGeneration)
                 {
@@ -486,7 +487,7 @@ int main(int argc, char *argv[])
     for (vector<tAgent*>::iterator it = saveLOD.begin(); it != saveLOD.end(); ++it)
     {
         // collect quantitative stats
-        game->executeGame(*it, LOD, false);
+        game->executeGame(*it, LOD, false, clamp((double)(*it)->born / (double)totalGenerations, 0.1, 0.75));
         
         // make video
         if (make_LOD_video)
@@ -507,6 +508,11 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+double clamp(double value, double low, double high)
+{
+    return value < low ? low : (value > high ? high : value);
+}
+
 string findBestRun(tAgent *pathfinderAgent)
 {
     string reportString = "", bestString = "";
@@ -514,7 +520,7 @@ string findBestRun(tAgent *pathfinderAgent)
     
     for (int rep = 0; rep < 100; ++rep)
     {
-        reportString = game->executeGame(pathfinderAgent, NULL, true);
+        reportString = game->executeGame(pathfinderAgent, NULL, true, clamp((double)pathfinderAgent->born / (double)totalGenerations, 0.1, 0.75));
         
         if (pathfinderAgent->fitness > bestFitness)
         {
