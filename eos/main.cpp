@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
     
     FILE *LOD = fopen(LODFileName.c_str(), "w");
 
-    fprintf(LOD, "generation,pathfinder_fitness\n");
+    fprintf(LOD, "generation,pathfinder_fitness,small_eaten,large_eaten\n");
     
     cout << "analyzing ancestor list" << endl;
     

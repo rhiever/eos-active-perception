@@ -64,6 +64,8 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
     double foodX[numFood], foodY[numFood], foodSize[numFood];
     bool foodEaten[numFood];
     
+    int smallEaten = 0, largeEaten = 0;
+    
     pathfinderAgent->fitness = 1.0;
     pathfinderAgent->setupPhenotype();
     
@@ -286,10 +288,12 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
                         if (foodSize[i] == smallFoodSize)
                         {
                             pathfinderFitness += 1;
+                            ++smallEaten;
                         }
                         else
                         {
                             pathfinderFitness -= 1;
+                            ++largeEaten;
                         }
                         
                         break;
@@ -309,9 +313,11 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
     // output to data file, if provided
     if (data_file != NULL)
     {
-        fprintf(data_file, "%d,%f\n",
+        fprintf(data_file, "%d,%f,%d,%d\n",
                 pathfinderAgent->born,              // update born (prey)
-                pathfinderAgent->fitness            // pathfinder fitness
+                pathfinderAgent->fitness,           // pathfinder fitness
+                smallEaten,                         // # of small food pieces eaten
+                largeEaten                          // # of large food pieces eaten
                 );
     }
     
