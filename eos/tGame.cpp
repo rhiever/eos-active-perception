@@ -39,7 +39,6 @@
 #define     gridYAcross                     2.0 * gridY
 #define     boundaryDist                    400.0
 #define     numFood                         100
-#define     foodPeriod                      100
 
 // precalculated lookup tables for the game
 double cosLookup[360];
@@ -58,7 +57,7 @@ tGame::tGame()
 tGame::~tGame() { }
 
 // runs the simulation for the given agent(s)
-string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report, double ratio)
+string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report, double foodRatio, bool oscillateFood, int oscillationPeriod)
 {
     string reportString = "";
     double pathfinderX = 0.0, pathfinderY = 0.0, pathfinderAngle = 0.0, pathfinderFitness = 0.0;
@@ -76,7 +75,7 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
     {
         bool goodPos = true;
         
-        if (i > numFood * ratio)
+        if (i > numFood * foodRatio)
         {
             foodSize[i] = smallFoodSize;
         }
@@ -111,18 +110,21 @@ string tGame::executeGame(tAgent* pathfinderAgent, FILE *data_file, bool report,
         
         /*       UPDATE FOOD SIZES                            */
         
-        int stepsIntoSection = step % foodPeriod;
-        
-        if (stepsIntoSection > foodPeriod / 2)
+        if (oscillateFood)
         {
-            stepsIntoSection = foodPeriod - stepsIntoSection;
-        }
-        
-        for (int i = 0; i < numFood; ++i)
-        {
-            if (foodSize[i] != smallFoodSize)
+            int stepsIntoSection = step % oscillationPeriod;
+            
+            if (stepsIntoSection > oscillationPeriod / 2)
             {
-                foodSize[i] = (5.01 * 5.01 + (stepsIntoSection / (double)(foodPeriod / 2.0)) * (largeFoodSize - 5.01 * 5.01));
+                stepsIntoSection = oscillationPeriod - stepsIntoSection;
+            }
+            
+            for (int i = 0; i < numFood; ++i)
+            {
+                if (foodSize[i] != smallFoodSize)
+                {
+                    foodSize[i] = (5.01 * 5.01 + (stepsIntoSection / (double)(oscillationPeriod / 2.0)) * (largeFoodSize - 5.01 * 5.01));
+                }
             }
         }
         

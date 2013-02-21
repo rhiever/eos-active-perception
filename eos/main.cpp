@@ -79,6 +79,11 @@ bool    display_only                = false;
 bool    display_directory           = false;
 bool    make_logic_table            = false;
 bool    make_dot                    = false;
+bool    scale_food_ratio            = false;
+double  min_food_ratio              = 0.25;
+double  max_food_ratio              = 0.75;
+bool    oscillate_food              = false;
+int     oscillation_period          = 5;
 
 int main(int argc, char *argv[])
 {
@@ -224,6 +229,52 @@ int main(int argc, char *argv[])
             dfn << argv[i];
             pathfinderDotFileName = dfn.str();
             make_dot = true;
+        }
+        
+        // -sfr: set the flag to scale the food ratio over evolutionary time
+        else if (strcmp(argv[i], "-sfr") == 0)
+        {
+            scale_food_ratio = true;
+        }
+        
+        // -mifr [double]: set the minimum fraction of large food circles (default: 0.1)
+        else if (strcmp(argv[i], "-mifr") == 0 && (i + 1) < argc)
+        {
+            ++i;
+            min_food_ratio = atof(argv[i]);
+            
+            if (min_food_ratio < 0)
+            {
+                cerr << "minimum food ratio is 0." << endl;
+                exit(0);
+            }
+        }
+        
+        // -mafr [double]: set the maximum fraction of large food circles (default: 0.75)
+        else if (strcmp(argv[i], "-mafr") == 0 && (i + 1) < argc)
+        {
+            ++i;
+            max_food_ratio = atof(argv[i]);
+            
+            if (max_food_ratio > 1)
+            {
+                cerr << "maximum food ratio is 1." << endl;
+                exit(0);
+            }
+        }
+        
+        // -of [int]: set the flag to oscillate the large food size at a given period (default: 5)
+        else if (strcmp(argv[i], "-of") == 0 && (i + 1) < argc)
+        {
+            oscillate_food = true;
+            ++i;
+            oscillation_period = atoi(argv[i]);
+            
+            if (oscillation_period < 2)
+            {
+                cerr << "minimum oscillation period is 2." << endl;
+                exit(0);
+            }
         }
 }
     
@@ -377,7 +428,14 @@ int main(int argc, char *argv[])
         
 		for(int i = 0; i < populationSize; ++i)
         {
-            game->executeGame(pathfinderAgents[i], NULL, false, clamp((double)update / (double)totalGenerations, 0.1, 0.75));
+            double foodRatio = min_food_ratio;
+            
+            if (scale_food_ratio)
+            {
+                foodRatio = clamp((double)update / (double)totalGenerations, min_food_ratio, max_food_ratio);
+            }
+            
+            game->executeGame(pathfinderAgents[i], NULL, false, foodRatio, oscillate_food, oscillation_period);
             
             pathfinderAvgFitness += pathfinderAgents[i]->fitness;
             
@@ -405,7 +463,14 @@ int main(int argc, char *argv[])
             
             if (update % make_video_frequency == 0 || finalGeneration)
             {
-                string bestString = game->executeGame(bestPathfinderAgent, NULL, true, clamp((double)update / (double)totalGenerations, 0.1, 0.75));
+                double foodRatio = min_food_ratio;
+                
+                if (scale_food_ratio)
+                {
+                    foodRatio = clamp((double)update / (double)totalGenerations, min_food_ratio, max_food_ratio);
+                }
+                
+                string bestString = game->executeGame(bestPathfinderAgent, NULL, true, foodRatio, oscillate_food, oscillation_period);
                 
                 if (finalGeneration)
                 {
@@ -487,7 +552,14 @@ int main(int argc, char *argv[])
     for (vector<tAgent*>::iterator it = saveLOD.begin(); it != saveLOD.end(); ++it)
     {
         // collect quantitative stats
-        game->executeGame(*it, LOD, false, clamp((double)(*it)->born / (double)totalGenerations, 0.1, 0.75));
+        double foodRatio = min_food_ratio;
+        
+        if (scale_food_ratio)
+        {
+            foodRatio = clamp((double)((*it)->born) / (double)totalGenerations, min_food_ratio, max_food_ratio);
+        }
+        
+        game->executeGame(*it, LOD, false, foodRatio, oscillate_food, oscillation_period);
         
         // make video
         if (make_LOD_video)
@@ -518,9 +590,16 @@ string findBestRun(tAgent *pathfinderAgent)
     string reportString = "", bestString = "";
     double bestFitness = 0.0;
     
+    double foodRatio = min_food_ratio;
+    
+    if (scale_food_ratio)
+    {
+        foodRatio = clamp((double)pathfinderAgent->born / (double)totalGenerations, min_food_ratio, max_food_ratio);
+    }
+    
     for (int rep = 0; rep < 100; ++rep)
     {
-        reportString = game->executeGame(pathfinderAgent, NULL, true, clamp((double)pathfinderAgent->born / (double)totalGenerations, 0.1, 0.75));
+        reportString = game->executeGame(pathfinderAgent, NULL, true, foodRatio, oscillate_food, oscillation_period);
         
         if (pathfinderAgent->fitness > bestFitness)
         {
